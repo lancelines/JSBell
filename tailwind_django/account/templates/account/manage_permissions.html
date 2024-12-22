@@ -1,107 +1,105 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-8 transition-transform transform hover:scale-105">
+    <div class="bg-white rounded-lg shadow-lg p-8">
         <!-- Header -->
         <div class="mb-8 text-center">
             <h2 class="text-3xl font-bold text-gray-800">
                 Manage Permissions for {{ managed_user.username }}
             </h2>
+            <p class="mt-2 text-gray-600">Customize user access and warehouse assignments</p>
         </div>
 
-        <form method="post" id="permissions-form" class="space-y-8">
+        <form method="post" class="space-y-8">
             {% csrf_token %}
             
             <!-- Warehouse Assignments -->
-            <div class="permissions-group bg-gray-50 p-6 rounded-lg shadow-md">
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-semibold text-gray-700 mb-4">Warehouse Assignments</h3>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     {{ warehouse_form.warehouses }}
                 </div>
             </div>
 
             <!-- Inventory Permissions -->
-            <div id="inventory-permissions" class="bg-gray-50 p-6 rounded-lg shadow-md">
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-semibold text-gray-700 mb-4">Inventory Permissions</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_add_inventory }}
-                        <span class="text-gray-700">Add Inventory</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_change_inventory }}
-                        <span class="text-gray-700">Change Inventory</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_delete_inventory }}
-                        <span class="text-gray-700">Delete Inventory</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_view_inventory }}
-                        <span class="text-gray-700">View Inventory</span>
-                    </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for field in perm_form %}
+                        {% if 'inventory' in field.name %}
+                        <div class="flex items-center space-x-3">
+                            {{ field }}
+                            <label for="{{ field.id_for_label }}" class="text-gray-700">{{ field.label }}</label>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Brand and Category Permissions -->
-            <div class="permissions-group bg-gray-50 p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Brand and Category Permissions</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_add_brand }}
-                        <span class="text-gray-700">Add Brand</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_add_category }}
-                        <span class="text-gray-700">Add Category</span>
-                    </label>
+            <!-- Brand Permissions -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Brand Permissions</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for field in perm_form %}
+                        {% if 'brand' in field.name %}
+                        <div class="flex items-center space-x-3">
+                            {{ field }}
+                            <label for="{{ field.id_for_label }}" class="text-gray-700">{{ field.label }}</label>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Warehouse Permissions -->
-            <div class="permissions-group bg-gray-50 p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Warehouse Permissions</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_add_warehouse }}
-                        <span class="text-gray-700">Add Warehouse</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_change_warehouse }}
-                        <span class="text-gray-700">Change Warehouse</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_delete_warehouse }}
-                        <span class="text-gray-700">Delete Warehouse</span>
-                    </label>
-                    <label class="flex items-center space-x-3">
-                        {{ perm_form.can_view_warehouse }}
-                        <span class="text-gray-700">View Warehouse</span>
-                    </label>
+            <!-- Category Permissions -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Category Permissions</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for field in perm_form %}
+                        {% if 'category' in field.name %}
+                        <div class="flex items-center space-x-3">
+                            {{ field }}
+                            <label for="{{ field.id_for_label }}" class="text-gray-700">{{ field.label }}</label>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex justify-center space-x-4 mt-6">
-                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200 ease-in-out transform hover:scale-105">
-                    Save Permissions and Assignments
+            <!-- Requisition Permissions -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Requisition Permissions</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for field in perm_form %}
+                        {% if 'requisition' in field.name %}
+                        <div class="flex items-center space-x-3">
+                            {{ field }}
+                            <label for="{{ field.id_for_label }}" class="text-gray-700">{{ field.label }}</label>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit"
+                    class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
+                    Save Permissions
                 </button>
-                <a href="{% url 'account:list_accounts' %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300 transition duration-200 ease-in-out transform hover:scale-105">
-                    Back to Accounts List
-                </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Add this script at the bottom of your template -->
 <script>
-    // Add custom styling to select elements
+    // Add custom styling to checkboxes
     document.addEventListener('DOMContentLoaded', function() {
-        const selectElements = document.querySelectorAll('select');
-        selectElements.forEach(select => {
-            select.classList.add('border-gray-300', 'rounded-md', 'shadow-sm', 'focus:ring', 'focus:ring-blue-500');
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.classList.add('h-4', 'w-4', 'rounded', 'border-gray-300', 'text-blue-600', 'focus:ring-blue-500');
         });
     });
 </script>

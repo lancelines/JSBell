@@ -3,9 +3,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User, Permission
-from .forms import UserRegistrationForm, UserLoginForm
+from .forms import UserRegistrationForm, UserLoginForm, PermissionsForm, WarehouseAssignmentForm
 from requisition.models import Requisition
 from django.db.models import Q
+from .models import CustomUser
+from django.contrib.contenttypes.models import ContentType
 
 def index(request):
     if request.user.is_authenticated:
@@ -79,33 +81,70 @@ def add_account(request):
 
 @login_required
 def list_accounts(request):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('account:home')
     
-    accounts = User.objects.all().order_by('username')
+    accounts = CustomUser.objects.select_related('user').all().order_by('user__username')
     return render(request, 'account/list_accounts.html', {'accounts': accounts})
 
 @login_required
 def manage_permissions(request, user_id):
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('account:home')
     
-    user = User.objects.get(id=user_id)
-    all_permissions = Permission.objects.all()
-    
-    if request.method == 'POST':
-        selected_permissions = request.POST.getlist('permissions')
-        user.user_permissions.clear()
-        for perm_id in selected_permissions:
-            permission = Permission.objects.get(id=perm_id)
-            user.user_permissions.add(permission)
-        messages.success(request, f'Permissions updated for {user.username}')
+    try:
+        managed_user = User.objects.get(id=user_id)
+        custom_user = CustomUser.objects.get(user=managed_user)
+    except (User.DoesNotExist, CustomUser.DoesNotExist):
+        messages.error(request, 'User not found.')
         return redirect('account:list_accounts')
     
-    context = {
-        'user': user,
-        'all_permissions': all_permissions,
-    }
-    return render(request, 'account/manage_permissions.html', context)
+    if request.method == 'POST':
+        perm_form = PermissionsForm(request.POST)
+        warehouse_form = WarehouseAssignmentForm(request.POST)
+        
+        if perm_form.is_valid() and warehouse_form.is_valid():
+            # Update warehouse assignments
+            custom_user.warehouses.set(warehouse_form.cleaned_data['warehouses'])
+            
+            # Clear existing permissions
+            managed_user.user_permissions.clear()
+            
+            # Update permissions based on form data
+            content_types = {
+                'inventory': ContentType.objects.get(app_label='inventory', model='inventory'),
+                'brand': ContentType.objects.get(app_label='inventory', model='brand'),
+                'category': ContentType.objects.get(app_label='inventory', model='category'),
+                'requisition': ContentType.objects.get(app_label='requisition', model='requisition'),
+            }
+            
+            for field, value in perm_form.cleaned_data.items():
+                if value:  # If permission is checked
+                    model, action = field.split('_')[1:]  # e.g., 'can_add_inventory' -> ['can', 'add', 'inventory']
+                    if model in content_types:
+                        perm = Permission.objects.get(
+                            codename=f"{action}_{model}",
+                            content_type=content_types[model]
+                        )
+                        managed_user.user_permissions.add(perm)
+            
+            messages.success(request, 'Permissions updated successfully!')
+            return redirect('account:list_accounts')
+    else:
+        # Initialize forms with current data
+        initial_perms = {
+            f'can_{perm.codename}': True 
+            for perm in managed_user.user_permissions.all()
+        }
+        perm_form = PermissionsForm(initial=initial_perms)
+        warehouse_form = WarehouseAssignmentForm(
+            initial={'warehouses': custom_user.warehouses.all()}
+        )
+    
+    return render(request, 'account/manage_permissions.html', {
+        'managed_user': managed_user,
+        'perm_form': perm_form,
+        'warehouse_form': warehouse_form,
+    })

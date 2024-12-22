@@ -955,6 +955,11 @@ select {
   margin-right: auto;
 }
 
+.-my-5 {
+  margin-top: -1.25rem;
+  margin-bottom: -1.25rem;
+}
+
 .-mb-8 {
   margin-bottom: -2rem;
 }
@@ -1049,6 +1054,10 @@ select {
 
 .mt-8 {
   margin-top: 2rem;
+}
+
+.mt-10 {
+  margin-top: 2.5rem;
 }
 
 .line-clamp-2 {
@@ -1498,6 +1507,12 @@ select {
   --tw-space-y-reverse: 0;
   margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+}
+
+.space-y-10 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(2.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(2.5rem * var(--tw-space-y-reverse));
 }
 
 .divide-y > :not([hidden]) ~ :not([hidden]) {
@@ -2294,12 +2309,20 @@ select {
   line-height: 1;
 }
 
+.leading-8 {
+  line-height: 2rem;
+}
+
 .tracking-tight {
   letter-spacing: -0.025em;
 }
 
 .tracking-wider {
   letter-spacing: 0.05em;
+}
+
+.tracking-wide {
+  letter-spacing: 0.025em;
 }
 
 .text-amber-600 {
@@ -3289,6 +3312,11 @@ select {
     font-size: 0.875rem;
     line-height: 1.25rem;
   }
+
+  .sm\:text-4xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
 }
 
 @media (min-width: 768px) {
@@ -3298,6 +3326,10 @@ select {
 
   .md\:table-cell {
     display: table-cell;
+  }
+
+  .md\:grid {
+    display: grid;
   }
 
   .md\:hidden {
@@ -3326,6 +3358,15 @@ select {
 
   .md\:items-center {
     align-items: center;
+  }
+
+  .md\:gap-x-8 {
+    -moz-column-gap: 2rem;
+         column-gap: 2rem;
+  }
+
+  .md\:gap-y-10 {
+    row-gap: 2.5rem;
   }
 
   .md\:space-y-0 > :not([hidden]) ~ :not([hidden]) {
@@ -3394,6 +3435,10 @@ select {
   .lg\:px-8 {
     padding-left: 2rem;
     padding-right: 2rem;
+  }
+
+  .lg\:text-center {
+    text-align: center;
   }
 }
 
