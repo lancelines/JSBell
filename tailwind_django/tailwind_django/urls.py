@@ -19,8 +19,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
+
+def redirect_to_account_home(request):
+    return redirect('account:home')
 
 urlpatterns = [
+    path("", redirect_to_account_home, name='root'),
     path("admin/", admin.site.urls),
     path("account/", include("account.urls")),
     path("inventory/", include("inventory.urls")),
