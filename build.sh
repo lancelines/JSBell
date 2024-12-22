@@ -5,8 +5,11 @@ set -o errexit
 # Install python dependencies
 pip install -r requirements.txt
 
+# Create media directory
+python tailwind_django/create_media_dir.py
+
 # Collect static files
-python manage.py collectstatic --no-input
+python tailwind_django/manage.py collectstatic --no-input
 
 # Run migrations
-python manage.py migrate
+python tailwind_django/manage.py migrate
