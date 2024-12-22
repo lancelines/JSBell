@@ -1,270 +1,87 @@
-{% extends "base.html" %}
-
-{% block title %}Home - Inventory Management{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h2 class="text-3xl font-bold text-gray-800 mb-4">Dashboard</h2>
-    
-    {% if user.is_authenticated %}
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {% if user_role in 'admin,manager' %}
-            <!-- Total Items Card -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Items</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ stats.total_items }}</p>
-                    </div>
-                    <div class="p-3 bg-blue-50 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
+<div class="py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Dashboard</h2>
+            <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                Welcome, {{ request.user.username }}!
+            </p>
+        </div>
 
-            <!-- Low Stock Items -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Low Stock Items</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ stats.low_stock_items }}</p>
-                    </div>
-                    <div class="p-3 bg-red-50 rounded-lg">
-                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Categories -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Categories</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ stats.total_categories }}</p>
-                    </div>
-                    <div class="p-3 bg-green-50 rounded-lg">
-                        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Value -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Value</p>
-                        <p class="text-2xl font-semibold text-gray-900">${{ stats.total_value|floatformat:2 }}</p>
-                    </div>
-                    <div class="p-3 bg-purple-50 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <!-- Sales Statistics for Attendants -->
-            <!-- Total Revenue Card -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Revenue</p>
-                        <p class="text-2xl font-semibold text-gray-900">${{ stats.total_revenue|floatformat:2 }}</p>
-                        <p class="text-sm text-gray-500 mt-1">All time</p>
-                    </div>
-                    <div class="p-3 bg-green-50 rounded-lg">
-                        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-500">Monthly Revenue:</span>
-                        <span class="font-medium">${{ stats.monthly_revenue|floatformat:2 }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm mt-1">
-                        <span class="text-gray-500">Weekly Revenue:</span>
-                        <span class="font-medium">${{ stats.weekly_revenue|floatformat:2 }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Sales Card -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Sales</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ stats.total_sales }}</p>
-                        <p class="text-sm text-gray-500 mt-1">All time</p>
-                    </div>
-                    <div class="p-3 bg-blue-50 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-500">Monthly Sales:</span>
-                        <span class="font-medium">{{ stats.monthly_sales }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm mt-1">
-                        <span class="text-gray-500">Weekly Sales:</span>
-                        <span class="font-medium">{{ stats.weekly_sales }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sales Growth Card -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Monthly Growth</p>
-                        <div class="flex items-center">
-                            <p class="text-2xl font-semibold {% if stats.sales_growth >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                {{ stats.sales_growth|floatformat:1 }}%
-                            </p>
-                            {% if stats.sales_growth >= 0 %}
-                            <svg class="w-5 h-5 text-green-500 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                            </svg>
+        <div class="mt-10">
+            <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
+                <!-- Recent Requisitions -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Requisitions</h3>
+                        <div class="mt-5">
+                            {% if requisitions %}
+                                <div class="flow-root">
+                                    <ul role="list" class="-my-5 divide-y divide-gray-200">
+                                        {% for requisition in requisitions %}
+                                            <li class="py-4">
+                                                <div class="flex items-center space-x-4">
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                                            {{ requisition.title }}
+                                                        </p>
+                                                        <p class="text-sm text-gray-500">
+                                                            Created: {{ requisition.created_at|date:"M d, Y" }}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                                            {% if requisition.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                                            {% elif requisition.status == 'approved' %}bg-green-100 text-green-800
+                                                            {% elif requisition.status == 'rejected' %}bg-red-100 text-red-800
+                                                            {% endif %}">
+                                                            {{ requisition.status|title }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
                             {% else %}
-                            <svg class="w-5 h-5 text-red-500 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path>
-                            </svg>
+                                <p class="text-gray-500">No recent requisitions</p>
                             {% endif %}
                         </div>
-                        <p class="text-sm text-gray-500 mt-1">vs last month</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Quick Actions Card -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div class="w-full">
-                        <p class="text-sm font-medium text-gray-600">Quick Actions</p>
-                        <div class="mt-4 space-y-3">
-                            <a href="{% url 'sales:create_sale' %}" class="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                                New Sale
-                            </a>
-                            <a href="{% url 'sales:sale_list' %}" class="block w-full px-4 py-2 text-sm font-medium text-center text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                                View Sales History
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {% if user_role in 'admin,manager' %}
-            <!-- Low Stock Items Table -->
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="text-lg font-semibold text-gray-900">Low Stock Items</h2>
-                    <p class="text-sm text-gray-600">Items that need reordering soon</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% if stats.low_stock_items_list %}
-                                {% for item in stats.low_stock_items_list %}
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ item.item_name }}</div>
-                                        <div class="text-sm text-gray-500">{{ item.brand.name }} - {{ item.category.name }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">{{ item.stock }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        {% if item.stock == 0 %}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                            Out of Stock
-                                        </span>
-                                        {% else %}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                            Low Stock
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="3" class="px-6 py-4 text-sm text-gray-500 text-center">
-                                        No items are currently low on stock
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
-                </div>
-                <div class="p-6">
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-medium text-gray-900">Inventory Management</h3>
-                        <a href="{% url 'inventory:list' %}" class="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                            View Inventory
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <!-- Top Selling Items for Attendants -->
-            <div class="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="text-lg font-semibold text-gray-900">Top Selling Items</h2>
-                    <p class="text-sm text-gray-600">Most popular items by quantity sold</p>
-                </div>
-                <div class="p-6">
-                    <div class="space-y-4">
-                        {% for item in stats.top_selling_items %}
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <h3 class="text-sm font-medium text-gray-900">{{ item.item__item_name }}</h3>
-                                <p class="text-sm text-gray-500">{{ item.total_quantity }} units sold</p>
-                            </div>
-                            <div class="ml-4">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Top {{ forloop.counter }}
-                                </span>
+                <!-- Quick Actions -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Actions</h3>
+                        <div class="mt-5">
+                            <div class="space-y-4">
+                                <a href="{% url 'requisition:create_requisition' %}" 
+                                   class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Create New Requisition
+                                </a>
+                                <a href="{% url 'requisition:requisition_list' %}" 
+                                   class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                    View All Requisitions
+                                </a>
+                                {% if request.user.is_superuser %}
+                                    <a href="{% url 'account:add_account' %}" 
+                                       class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                        Add New User
+                                    </a>
+                                    <a href="{% url 'account:list_accounts' %}" 
+                                       class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                        Manage Users
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
             </div>
-            {% endif %}
         </div>
-    {% else %}
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <p class="text-yellow-700">Please log in to access inventory management.</p>
-        </div>
-    {% endif %}
+    </div>
 </div>
 {% endblock %}
