@@ -114,7 +114,7 @@ def manage_permissions(request, user_id):
             
             # Update permissions based on form data
             content_types = {
-                'inventory': ContentType.objects.get(app_label='inventory', model='inventory'),
+                'inventory': ContentType.objects.get(app_label='inventory', model='inventoryitem'),
                 'brand': ContentType.objects.get(app_label='inventory', model='brand'),
                 'category': ContentType.objects.get(app_label='inventory', model='category'),
                 'requisition': ContentType.objects.get(app_label='requisition', model='requisition'),
