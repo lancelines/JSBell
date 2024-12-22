@@ -71,7 +71,9 @@ def add_account(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            # Create CustomUser with admin role
+            CustomUser.objects.create(user=user, role='admin')
             messages.success(request, 'Account created successfully!')
             return redirect('account:list_accounts')
     else:
@@ -81,11 +83,33 @@ def add_account(request):
 
 @login_required
 def list_accounts(request):
-    if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('account:home')
+    if not request.user.is_superuser:
+        try:
+            if not request.user.customuser.role == 'admin':
+                messages.error(request, 'You do not have permission to access this page.')
+                return redirect('account:home')
+        except CustomUser.DoesNotExist:
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('account:home')
     
-    accounts = CustomUser.objects.select_related('user').all().order_by('user__username')
+    users = User.objects.prefetch_related('customuser').filter(is_active=True).order_by('username')
+    accounts = []
+    for user in users:
+        try:
+            custom_user = user.customuser
+            accounts.append({
+                'user': user,
+                'custom_user': custom_user
+            })
+        except CustomUser.DoesNotExist:
+            # Create CustomUser for existing users without one
+            if user.is_superuser:
+                custom_user = CustomUser.objects.create(user=user, role='admin')
+                accounts.append({
+                    'user': user,
+                    'custom_user': custom_user
+                })
+    
     return render(request, 'account/list_accounts.html', {'accounts': accounts})
 
 @login_required
