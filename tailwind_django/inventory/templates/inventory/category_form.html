@@ -1,0 +1,7 @@
+<h2>Create New Category</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create Category</button>
+</form>
+<a href="{% url 'inventory:list' %}">Back to Inventory List</a>

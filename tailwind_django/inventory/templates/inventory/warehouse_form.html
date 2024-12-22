@@ -1,0 +1,11 @@
+
+
+{% block content %}
+<h1>{% if form.instance.pk %}Edit{% else %}Create{% endif %} Warehouse</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+<a href="{% url 'inventory:list' %}" class="btn btn-secondary mt-3">Back to Inventory</a>
+{% endblock %}

@@ -1,0 +1,7 @@
+<h2>Create New Brand</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create Brand</button>
+</form>
+<a href="{% url 'inventory:list' %}">Back to Inventory List</a>

@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Messages Section -->
+    {% if messages %}
+    <div class="mb-8">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %} flex items-center">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-3"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-lg transform hover:scale-[1.02] transition-transform duration-300">
+        <div class="px-6 py-8 sm:px-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white">
+                        Inventory Management
+                        <span class="text-indigo-100 text-lg block mt-1">
+                            {% if is_main_warehouse %}(Main Warehouse){% else %}(Attendant Warehouse){% endif %}
+                        </span>
+                    </h1>
+                    <p class="mt-2 text-indigo-100 text-sm sm:text-base">
+                        Manage and track your inventory items across warehouses
+                    </p>
+                </div>
+                <div class="hidden sm:block">
+                    <i class="fas fa-warehouse text-white text-4xl opacity-80"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Settings Section -->
+    {% if perms.inventory.change_globalsettings %}
+    <div class="mb-8 bg-white rounded-2xl shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Global Settings</h2>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="id_reorder_level" class="block text-sm font-medium text-gray-700">Global Reorder Level</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    {{ global_settings_form.reorder_level }}
+                    <button type="submit" 
+                            class="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-save mr-2"></i>Update
+                    </button>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Items with stock below this level will be marked for reordering</p>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filter Section -->
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search Bar -->
+                <div class="md:col-span-2">
+                    <div class="relative">
+                        <input type="text" 
+                               id="searchInput" 
+                               name="search" 
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                               placeholder="Search by item name, brand, or model..."
+                               value="{{ request.GET.search|default:'' }}"
+                        >
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <select id="category" name="category" onchange="applyCategoryFilter(this.value)" class="w-full rounded-lg border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-indigo-500 bg-gray-50 py-2 px-3 text-gray-900">
+                        <option value="">All Categories</option>
+                        {% for category in all_categories %}
+                            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:'s' %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Brand Filter -->
+                <div>
+                    <select id="brand" name="brand" onchange="applyBrandFilter(this.value)" class="w-full rounded-lg border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-indigo-500 bg-gray-50 py-2 px-3 text-gray-900">
+                        <option value="">All Brands</option>
+                        {% for brand in all_brands %}
+                            <option value="{{ brand.id }}" {% if selected_brand == brand.id|stringformat:'s' %}selected{% endif %}>
+                                {{ brand.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap gap-4 mb-8">
+        {% if perms.inventory.add_inventoryitem %}
+        <a href="{% url 'inventory:create' %}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105 transition-all duration-200">
+            <i class="fas fa-plus-circle mr-2"></i>
+            Add New Item
+        </a>
+        {% endif %}
+        {% if perms.inventory.add_brand %}
+            <a href="{% url 'inventory:create_brand' %}" 
+               class="inline-flex items-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-md transition-all duration-200 transform hover:-translate-y-0.5">
+                <i class="fas fa-tag mr-2"></i>New Brand
+            </a>
+        {% endif %}
+        {% if perms.inventory.add_category %}
+            <a href="{% url 'inventory:create_category' %}" 
+               class="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-md transition-all duration-200 transform hover:-translate-y-0.5">
+                <i class="fas fa-folder-plus mr-2"></i>New Category
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Table Section -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-box-open text-gray-400"></i>
+                                <span>Item Name</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-copyright text-gray-400"></i>
+                                <span>Brand</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-barcode text-gray-400"></i>
+                                <span>Model</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-cubes text-gray-400"></i>
+                                <span>Stock</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
+                                <span>Price</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for item in items %}
+                        <tr class="hover:bg-gray-50 transition-all duration-200">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0 h-10 w-10 hidden sm:block">
+                                        {% if item.image %}
+                                            <img src="{{ item.image.url }}" alt="{{ item.item_name }}" class="h-10 w-10 rounded-2xl object-cover ring-1 ring-gray-200">
+                                        {% else %}
+                                            <div class="h-10 w-10 rounded-2xl bg-gray-50 ring-1 ring-gray-200 flex items-center justify-center">
+                                                <i class="fas fa-cube text-gray-400"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900" data-item-name>{{ item.item_name }}</div>
+                                        <div class="text-sm text-gray-500 md:hidden" data-brand>{{ item.brand.name }}</div>
+                                        <div class="text-sm text-gray-500 lg:hidden" data-model>{{ item.model }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 hidden md:table-cell">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                                    {{ item.brand.name }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 hidden lg:table-cell">
+                                <span class="text-sm text-gray-900">{{ item.model }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-1">
+                                        <i class="fas fa-cube text-gray-400"></i>
+                                        <span class="text-sm font-medium {% if item.stock <= global_settings.reorder_level %}text-red-600{% else %}text-gray-900{% endif %}">
+                                            {{ item.stock }}
+                                        </span>
+                                    </div>
+                                    {% if item.stock <= global_settings.reorder_level %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 ring-1 ring-red-200">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            Low
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-1">
+                                        <i class="fas fa-dollar-sign text-gray-400"></i>
+                                        <span class="text-sm font-medium text-gray-900">{{ item.price }}</span>
+                                    </div>
+                                    {% if item.price == 0.00 %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200">
+                                            <i class="fas fa-tag mr-1"></i>
+                                            Not Set
+                                        </span>
+                                        <button onclick="window.location.href='{% url "inventory:set_price" item.id %}'" 
+                                                class="relative inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 ring-1 ring-indigo-200 transition-colors duration-200"
+                                                title="Set Price">
+                                            <i class="fas fa-dollar-sign mr-1"></i>
+                                            Set Price
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end -space-x-1">
+                                    {% if perms.inventory.view_inventoryitem %}
+                                        <button onclick="window.location.href='{% url "inventory:detail" item.id %}|addslashes';" 
+                                                class="relative inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors duration-200 hover:z-10 focus:z-10"
+                                                title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if perms.inventory.change_inventoryitem %}
+                                        <button onclick="window.location.href='{% url "inventory:update" item.id %}|addslashes';" 
+                                                class="relative inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors duration-200 hover:z-10 focus:z-10"
+                                                title="Edit Item">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if perms.inventory.delete_inventoryitem %}
+                                        <button onclick="window.location.href='{% url "inventory:delete" item.id %}|addslashes';" 
+                                                class="relative inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 hover:z-10 focus:z-10"
+                                                title="Delete Item">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12">
+                                <div class="flex flex-col items-center">
+                                    <div class="rounded-full bg-gray-50 p-3 ring-1 ring-gray-200">
+                                        <i class="fas fa-box-open text-3xl text-gray-400"></i>
+                                    </div>
+                                    <h3 class="mt-4 text-sm font-medium text-gray-900">No items found</h3>
+                                    <p class="mt-1 text-sm text-gray-500">Get started by adding some items to your inventory.</p>
+                                    {% if perms.inventory.add_inventoryitem %}
+                                        <div class="mt-4">
+                                            <a href="{% url 'inventory:create' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-200">
+                                                <i class="fas fa-plus mr-2"></i>
+                                                Add Item
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if items.has_other_pages %}
+        <nav class="flex justify-center mt-8" aria-label="Pagination">
+            <ul class="flex space-x-2">
+                {% if items.has_previous %}
+                    <li>
+                        <a href="?page={{ items.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse }}{% endif %}{% if needs_reorder %}&needs_reorder=true{% endif %}" 
+                           class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for i in items.paginator.page_range %}
+                    <li>
+                        {% if items.number == i %}
+                            <span class="px-3 py-2 rounded-lg bg-indigo-600 text-white">
+                                {{ i }}
+                            </span>
+                        {% else %}
+                            <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse }}{% endif %}{% if needs_reorder %}&needs_reorder=true{% endif %}" 
+                               class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                                {{ i }}
+                            </a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                
+                {% if items.has_next %}
+                    <li>
+                        <a href="?page={{ items.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_brand %}&brand={{ selected_brand }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse }}{% endif %}{% if needs_reorder %}&needs_reorder=true{% endif %}" 
+                           class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.querySelector('tbody');
+    const originalRows = Array.from(tableBody.querySelectorAll('tr'));
+
+    function filterTable(searchTerm) {
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+        let hasResults = false;
+
+        rows.forEach(row => {
+            if (row.classList.contains('empty-state')) {
+                row.remove();
+                return;
+            }
+
+            const itemName = row.querySelector('[data-item-name]')?.textContent.toLowerCase() || '';
+            const brand = row.querySelector('[data-brand]')?.textContent.toLowerCase() || '';
+            const model = row.querySelector('[data-model]')?.textContent.toLowerCase() || '';
+
+            if (searchTerm === '' || 
+                itemName.includes(searchTerm) || 
+                brand.includes(searchTerm) || 
+                model.includes(searchTerm)) {
+                row.style.display = '';
+                hasResults = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (!hasResults) {
+            const emptyStateRow = document.createElement('tr');
+            emptyStateRow.classList.add('empty-state');
+            emptyStateRow.innerHTML = `
+                <td colspan="6" class="px-6 py-12">
+                    <div class="flex flex-col items-center">
+                        <div class="rounded-full bg-gray-50 p-3 ring-1 ring-gray-200">
+                            <i class="fas fa-search text-gray-400 text-xl"></i>
+                        </div>
+                        <h3 class="mt-4 text-sm font-medium text-gray-900">No results found</h3>
+                        <p class="mt-1 text-sm text-gray-500">No items match your search criteria "${searchTerm}"</p>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(emptyStateRow);
+        }
+    }
+
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        filterTable(searchTerm);
+    });
+
+    // Initialize search if there's a value in the search input
+    if (searchInput.value) {
+        filterTable(searchInput.value.toLowerCase().trim());
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
