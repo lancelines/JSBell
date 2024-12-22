@@ -54,7 +54,7 @@ def home(request):
         requisitions = Requisition.objects.all().order_by('-created_at')[:5]
     else:
         requisitions = Requisition.objects.filter(
-            Q(created_by=user) | Q(approver=user)
+            Q(requester=user)
         ).order_by('-created_at')[:5]
     
     context = {
