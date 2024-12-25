@@ -33,3 +33,6 @@ urlpatterns = [
     path("purchasing/", include("purchasing.urls")),
     path("sales/", include("sales.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler404 = 'account.views.error_404'
+handler500 = 'account.views.error_500'
