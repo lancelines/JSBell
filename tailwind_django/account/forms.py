@@ -15,12 +15,34 @@ class UserRegistrationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        role = self.cleaned_data['role']
+        
         if commit:
             user.save()
-            CustomUser.objects.create(
+            custom_user = CustomUser.objects.create(
                 user=user,
-                role=self.cleaned_data['role']
+                role=role
             )
+            
+            # Handle warehouse creation and assignment
+            from inventory.models import Warehouse
+            
+            if role == 'manager':
+                warehouse_name = 'Manager Warehouse'
+            elif role == 'attendance':
+                warehouse_name = 'Attendant Warehouse'
+            else:
+                return user
+                
+            # Get or create the warehouse
+            warehouse, created = Warehouse.objects.get_or_create(
+                name=warehouse_name,
+                defaults={'is_main': False}
+            )
+            
+            # Assign warehouse to custom user
+            custom_user.warehouses.add(warehouse)
+            
         return user
 
 class UserLoginForm(forms.Form):
@@ -38,27 +60,19 @@ class WarehouseAssignmentForm(forms.Form):
     )
 
 class PermissionsForm(forms.Form):
-    # Inventory permissions
-    can_add_inventory = forms.BooleanField(required=False, label='Add Inventory')
-    can_change_inventory = forms.BooleanField(required=False, label='Change Inventory')
-    can_delete_inventory = forms.BooleanField(required=False, label='Delete Inventory')
-    can_view_inventory = forms.BooleanField(required=False, label='View Inventory')
-    
-    # Brand permissions
-    can_add_brand = forms.BooleanField(required=False, label='Add Brand')
-    can_change_brand = forms.BooleanField(required=False, label='Change Brand')
-    can_delete_brand = forms.BooleanField(required=False, label='Delete Brand')
-    can_view_brand = forms.BooleanField(required=False, label='View Brand')
-    
-    # Category permissions
-    can_add_category = forms.BooleanField(required=False, label='Add Category')
-    can_change_category = forms.BooleanField(required=False, label='Change Category')
-    can_delete_category = forms.BooleanField(required=False, label='Delete Category')
-    can_view_category = forms.BooleanField(required=False, label='View Category')
-    
-    # Requisition permissions
-    can_add_requisition = forms.BooleanField(required=False, label='Add Requisition')
-    can_change_requisition = forms.BooleanField(required=False, label='Change Requisition')
-    can_delete_requisition = forms.BooleanField(required=False, label='Delete Requisition')
-    can_view_requisition = forms.BooleanField(required=False, label='View Requisition')
-    can_approve_requisition = forms.BooleanField(required=False, label='Approve Requisition')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['can_add_inventory'] = forms.BooleanField(required=False, label='Add Inventory', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_change_inventory'] = forms.BooleanField(required=False, label='Change Inventory', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_delete_inventory'] = forms.BooleanField(required=False, label='Delete Inventory', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_view_inventory'] = forms.BooleanField(required=False, label='View Inventory', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        
+        self.fields['can_add_brand'] = forms.BooleanField(required=False, label='Add Brand', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_change_brand'] = forms.BooleanField(required=False, label='Change Brand', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_delete_brand'] = forms.BooleanField(required=False, label='Delete Brand', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_view_brand'] = forms.BooleanField(required=False, label='View Brand', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        
+        self.fields['can_add_category'] = forms.BooleanField(required=False, label='Add Category', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_change_category'] = forms.BooleanField(required=False, label='Change Category', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_delete_category'] = forms.BooleanField(required=False, label='Delete Category', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))
+        self.fields['can_view_category'] = forms.BooleanField(required=False, label='View Category', widget=forms.CheckboxInput(attrs={'class': 'permission-checkbox'}))

@@ -72,8 +72,6 @@ def add_account(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            # Create CustomUser with admin role
-            CustomUser.objects.create(user=user, role='admin')
             messages.success(request, 'Account created successfully!')
             return redirect('account:list_accounts')
     else:
@@ -130,13 +128,11 @@ def manage_permissions(request, user_id):
         warehouse_form = WarehouseAssignmentForm(request.POST)
         
         if perm_form.is_valid() and warehouse_form.is_valid():
-            # Update warehouse assignments
-            custom_user.warehouses.set(warehouse_form.cleaned_data['warehouses'])
+            # Update warehouse assignments only for non-admin users
+            if custom_user.role != 'admin':
+                custom_user.warehouses.set(warehouse_form.cleaned_data['warehouses'])
             
-            # Clear existing permissions
-            managed_user.user_permissions.clear()
-            
-            # Update permissions based on form data
+            # Get content types for our models
             content_types = {
                 'inventory': ContentType.objects.get(app_label='inventory', model='inventoryitem'),
                 'brand': ContentType.objects.get(app_label='inventory', model='brand'),
@@ -144,31 +140,92 @@ def manage_permissions(request, user_id):
                 'requisition': ContentType.objects.get(app_label='requisition', model='requisition'),
             }
             
-            for field, value in perm_form.cleaned_data.items():
-                if value:  # If permission is checked
-                    model, action = field.split('_')[1:]  # e.g., 'can_add_inventory' -> ['can', 'add', 'inventory']
-                    if model in content_types:
-                        perm = Permission.objects.get(
-                            codename=f"{action}_{model}",
-                            content_type=content_types[model]
-                        )
+            # Clear existing permissions for these content types
+            managed_user.user_permissions.filter(content_type__in=content_types.values()).delete()
+            
+            # Create or update permissions based on form data
+            for field_name, value in perm_form.cleaned_data.items():
+                if not field_name.startswith('can_'):
+                    continue
+                    
+                # Extract model and action from field name
+                # e.g., 'can_add_inventory' -> action='add', model='inventory'
+                _, action, model = field_name.split('_')
+                
+                if model not in content_types:
+                    continue
+                
+                # Get or create the permission
+                try:
+                    perm, _ = Permission.objects.get_or_create(
+                        codename=f"{action}_{model}",
+                        content_type=content_types[model],
+                        defaults={'name': f'Can {action} {model}'}
+                    )
+                    
+                    # Add permission if checkbox was checked
+                    if value:
                         managed_user.user_permissions.add(perm)
+                except Exception as e:
+                    messages.warning(request, f'Error with permission {action}_{model}: {str(e)}')
+            
+            # Force permission cache refresh
+            managed_user = User.objects.get(id=user_id)
             
             messages.success(request, 'Permissions updated successfully!')
-            return redirect('account:list_accounts')
+            return redirect('account:manage_permissions', user_id=user_id)
     else:
         # Initialize forms with current data
-        initial_perms = {
-            f'can_{perm.codename}': True 
-            for perm in managed_user.user_permissions.all()
-        }
+        initial_perms = {}
+        
+        # Get current permissions
+        for perm in managed_user.user_permissions.all():
+            initial_perms[f'can_{perm.codename}'] = True
+        
         perm_form = PermissionsForm(initial=initial_perms)
         warehouse_form = WarehouseAssignmentForm(
             initial={'warehouses': custom_user.warehouses.all()}
         )
     
-    return render(request, 'account/manage_permissions.html', {
+    context = {
         'managed_user': managed_user,
         'perm_form': perm_form,
         'warehouse_form': warehouse_form,
-    })
+        'current_permissions': [p.codename for p in managed_user.user_permissions.all()],  # For debugging
+    }
+    
+    return render(request, 'account/manage_permissions.html', context)
+
+@login_required
+def delete_account(request, user_id):
+    if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
+        messages.error(request, 'You do not have permission to delete accounts.')
+        return redirect('account:list_accounts')
+    
+    try:
+        user_to_delete = User.objects.get(id=user_id)
+        if user_to_delete.is_superuser:
+            messages.error(request, 'Cannot delete superuser accounts.')
+            return redirect('account:list_accounts')
+        
+        # Delete the user and their associated custom user
+        user_to_delete.delete()
+        messages.success(request, 'Account deleted successfully.')
+    except User.DoesNotExist:
+        messages.error(request, 'User not found.')
+    
+    return redirect('account:list_accounts')
+
+def error_404(request, exception):
+    context = {
+        'error_code': '404',
+        'error_message': 'The page you\'re looking for doesn\'t exist.'
+    }
+    return render(request, 'error.html', context, status=404)
+
+def error_500(request):
+    context = {
+        'error_code': '500',
+        'error_message': 'Internal server error. Please try again later.'
+    }
+    return render(request, 'error.html', context, status=500)
