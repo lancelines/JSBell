@@ -6,24 +6,42 @@ from inventory.models import Warehouse
 
 class CustomUser(models.Model):
     ROLE_CHOICES = [
+        ('admin', 'Admin'),
         ('manager', 'Manager'),
         ('attendance', 'Attendance'),
-        ('admin', 'Admin'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    warehouses = models.ManyToManyField(Warehouse, blank=True)
+    warehouses = models.ManyToManyField('inventory.Warehouse', related_name='custom_users')
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
+        is_new = self._state.adding  # Check if this is a new instance
         super().save(*args, **kwargs)
         
-        if is_new or self.role in ['manager', 'admin']:
-            self.update_permissions()
+        if is_new:  # Only run this for new users
+            from inventory.models import Warehouse
+            
+            # For admin role, assign all warehouses
+            if self.role == 'admin':
+                all_warehouses = Warehouse.objects.all()
+                self.warehouses.add(*all_warehouses)
+            
+            # For manager and attendance roles
+            elif self.role in ['manager', 'attendance']:
+                warehouse_name = 'Manager Warehouse' if self.role == 'manager' else 'Attendant Warehouse'
+                
+                # Get or create the warehouse
+                warehouse, created = Warehouse.objects.get_or_create(
+                    name=warehouse_name,
+                    defaults={'is_main': False}
+                )
+                
+                # Assign warehouse to user
+                self.warehouses.add(warehouse)
 
     def update_permissions(self):
         # Remove all existing permissions

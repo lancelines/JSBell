@@ -1,5 +1,4 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from .models import Sale, SaleItem, ReturnItem
 from .forms import SaleForm
 from django.contrib import messages
@@ -16,7 +15,6 @@ from django.db import models
 from .recommendations import get_product_recommendations
 import json
 
-@login_required
 def sale_list(request):
     sales = Sale.objects.all().order_by('-sale_date')
     
@@ -42,7 +40,6 @@ def sale_list(request):
         'return_status': return_status
     })
 
-@login_required
 def create_sale(request):
     search_query = request.GET.get('search_query', '')
     brand_id = request.GET.get('brand')
@@ -120,7 +117,6 @@ def create_sale(request):
 
     return render(request, 'sales/sale_form.html', context)
 
-@login_required
 def return_sale(request, sale_id):
     try:
         sale = Sale.objects.get(pk=sale_id)
@@ -176,7 +172,6 @@ def return_sale(request, sale_id):
     
     return redirect('sales:sale_list')
 
-@login_required
 def download_receipt(request, sale_id):
     try:
         sale = Sale.objects.get(id=sale_id)

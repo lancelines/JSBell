@@ -1012,6 +1012,10 @@ select {
   margin-left: 1rem;
 }
 
+.ml-5 {
+  margin-left: 1.25rem;
+}
+
 .mr-1 {
   margin-right: 0.25rem;
 }
@@ -1058,10 +1062,6 @@ select {
 
 .mt-8 {
   margin-top: 2rem;
-}
-
-.ml-5 {
-  margin-left: 1.25rem;
 }
 
 .line-clamp-2 {
@@ -1167,6 +1167,10 @@ select {
   min-height: 100vh;
 }
 
+.w-0 {
+  width: 0px;
+}
+
 .w-0\.5 {
   width: 0.125rem;
 }
@@ -1233,10 +1237,6 @@ select {
 
 .w-full {
   width: 100%;
-}
-
-.w-0 {
-  width: 0px;
 }
 
 .min-w-0 {
@@ -1422,16 +1422,16 @@ select {
   gap: 1rem;
 }
 
+.gap-5 {
+  gap: 1.25rem;
+}
+
 .gap-6 {
   gap: 1.5rem;
 }
 
 .gap-8 {
   gap: 2rem;
-}
-
-.gap-5 {
-  gap: 1.25rem;
 }
 
 .gap-x-4 {

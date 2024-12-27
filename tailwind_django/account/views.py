@@ -1,16 +1,14 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import User
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .forms import UserRegistrationForm, UserLoginForm, PermissionsForm, WarehouseAssignmentForm
+from .forms import UserRegistrationForm, UserLoginForm
 from requisition.models import Requisition
 from sales.models import Sale, ReturnItem, SaleItem
 from .models import CustomUser
-from django.contrib.contenttypes.models import ContentType
 
 def index(request):
     if request.user.is_authenticated:
@@ -48,7 +46,6 @@ def logout_view(request):
     logout(request)
     return redirect('account:login')
 
-@login_required
 def home(request):
     user = request.user
     requisitions = []
@@ -107,7 +104,6 @@ def home(request):
     }
     return render(request, 'account/home.html', context)
 
-@login_required
 def add_account(request):
     if not request.user.is_superuser:
         messages.error(request, 'You do not have permission to access this page.')
@@ -124,7 +120,6 @@ def add_account(request):
     
     return render(request, 'account/add_account.html', {'form': form})
 
-@login_required
 def list_accounts(request):
     if not request.user.is_superuser:
         try:
@@ -155,93 +150,6 @@ def list_accounts(request):
     
     return render(request, 'account/list_accounts.html', {'accounts': accounts})
 
-@login_required
-def manage_permissions(request, user_id):
-    if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('account:home')
-    
-    try:
-        managed_user = User.objects.get(id=user_id)
-        custom_user = CustomUser.objects.get(user=managed_user)
-    except (User.DoesNotExist, CustomUser.DoesNotExist):
-        messages.error(request, 'User not found.')
-        return redirect('account:list_accounts')
-    
-    if request.method == 'POST':
-        perm_form = PermissionsForm(request.POST)
-        warehouse_form = WarehouseAssignmentForm(request.POST)
-        
-        if perm_form.is_valid() and warehouse_form.is_valid():
-            # Update warehouse assignments only for non-admin users
-            if custom_user.role != 'admin':
-                custom_user.warehouses.set(warehouse_form.cleaned_data['warehouses'])
-            
-            # Get content types for our models
-            content_types = {
-                'inventory': ContentType.objects.get(app_label='inventory', model='inventoryitem'),
-                'brand': ContentType.objects.get(app_label='inventory', model='brand'),
-                'category': ContentType.objects.get(app_label='inventory', model='category'),
-                'requisition': ContentType.objects.get(app_label='requisition', model='requisition'),
-            }
-            
-            # Clear existing permissions for these content types
-            managed_user.user_permissions.filter(content_type__in=content_types.values()).delete()
-            
-            # Create or update permissions based on form data
-            for field_name, value in perm_form.cleaned_data.items():
-                if not field_name.startswith('can_'):
-                    continue
-                    
-                # Extract model and action from field name
-                # e.g., 'can_add_inventory' -> action='add', model='inventory'
-                _, action, model = field_name.split('_')
-                
-                if model not in content_types:
-                    continue
-                
-                # Get or create the permission
-                try:
-                    perm, _ = Permission.objects.get_or_create(
-                        codename=f"{action}_{model}",
-                        content_type=content_types[model],
-                        defaults={'name': f'Can {action} {model}'}
-                    )
-                    
-                    # Add permission if checkbox was checked
-                    if value:
-                        managed_user.user_permissions.add(perm)
-                except Exception as e:
-                    messages.warning(request, f'Error with permission {action}_{model}: {str(e)}')
-            
-            # Force permission cache refresh
-            managed_user = User.objects.get(id=user_id)
-            
-            messages.success(request, 'Permissions updated successfully!')
-            return redirect('account:manage_permissions', user_id=user_id)
-    else:
-        # Initialize forms with current data
-        initial_perms = {}
-        
-        # Get current permissions
-        for perm in managed_user.user_permissions.all():
-            initial_perms[f'can_{perm.codename}'] = True
-        
-        perm_form = PermissionsForm(initial=initial_perms)
-        warehouse_form = WarehouseAssignmentForm(
-            initial={'warehouses': custom_user.warehouses.all()}
-        )
-    
-    context = {
-        'managed_user': managed_user,
-        'perm_form': perm_form,
-        'warehouse_form': warehouse_form,
-        'current_permissions': [p.codename for p in managed_user.user_permissions.all()],  # For debugging
-    }
-    
-    return render(request, 'account/manage_permissions.html', context)
-
-@login_required
 def delete_account(request, user_id):
     if not request.user.is_superuser and not hasattr(request.user, 'customuser') or request.user.customuser.role != 'admin':
         messages.error(request, 'You do not have permission to delete accounts.')

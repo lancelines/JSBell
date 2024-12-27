@@ -1,6 +1,4 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, IntegerField, F
@@ -83,7 +81,6 @@ def create_delivery_notification(delivery, action, user=None):
             message=message
         )
 
-@login_required
 def requisition_list(request):
     user = request.user
     user_role = user.customuser.role if hasattr(user, 'customuser') else None
@@ -142,7 +139,6 @@ def requisition_list(request):
     }
     return render(request, 'requisition/requisition_list.html', context)
 
-@login_required
 def create_requisition(request):
     # Add debug logging
     print("\nDEBUG: Starting create_requisition")
@@ -229,7 +225,6 @@ def create_requisition(request):
         'brands': sorted(brands)
     })
 
-@login_required
 def edit_requisition(request, pk):
     requisition = get_object_or_404(Requisition, pk=pk)
     if not requisition.can_edit():
@@ -247,7 +242,6 @@ def edit_requisition(request, pk):
 
     return render(request, 'requisition/edit_requisition.html', {'form': form, 'requisition': requisition})
 
-@login_required
 def reject_requisition(request, pk):
     requisition = get_object_or_404(Requisition, pk=pk)
     user_role = request.user.customuser.role if hasattr(request.user, 'customuser') else None
@@ -270,7 +264,6 @@ def reject_requisition(request, pk):
     
     return redirect('requisition:requisition_list')
 
-@login_required
 def approve_requisition(request, pk):
     requisition = get_object_or_404(Requisition, pk=pk)
     user_role = request.user.customuser.role if hasattr(request.user, 'customuser') else None
@@ -465,7 +458,6 @@ def approve_requisition(request, pk):
     }
     return render(request, 'requisition/approve_requisition.html', context)
 
-@login_required
 def complete_requisition(request, pk):
     requisition = get_object_or_404(Requisition, pk=pk)
     user_role = request.user.customuser.role if hasattr(request.user, 'customuser') else None
@@ -486,7 +478,6 @@ def complete_requisition(request, pk):
     messages.success(request, 'Requisition completed successfully.')
     return redirect('requisition:requisition_list')
 
-@login_required
 def delete_requisition(request, pk):
     """Permanently delete a requisition and all its related data."""
     requisition = get_object_or_404(Requisition, pk=pk)
@@ -505,7 +496,6 @@ def delete_requisition(request, pk):
     
     return redirect('requisition:requisition_list')
 
-@login_required
 def delete_all_requisitions(request):
     """Permanently delete all requisitions for a user."""
     if not request.user.is_superuser:
@@ -524,7 +514,6 @@ def delete_all_requisitions(request):
     
     return redirect('requisition:requisition_history')
 
-@login_required
 def requisition_history(request):
     # Get filter parameters
     query = request.GET.get('q', '')
@@ -590,7 +579,6 @@ def requisition_history(request):
     
     return render(request, 'requisition/requisition_history.html', context)
 
-@login_required
 def delivery_list(request):
     print("\nDEBUG: Starting delivery_list")
     user_role = request.user.customuser.role if hasattr(request.user, 'customuser') else None
@@ -685,7 +673,6 @@ def delivery_list(request):
     
     return render(request, 'requisition/delivery_list.html', context)
 
-@login_required
 def manage_delivery(request, pk):
     delivery = get_object_or_404(Delivery, pk=pk)
     requisition = delivery.requisition
@@ -803,7 +790,6 @@ def manage_delivery(request, pk):
     }
     return render(request, 'requisition/manage_delivery.html', context)
 
-@login_required
 def start_delivery(request, pk):
     delivery = get_object_or_404(Delivery, pk=pk)
     
@@ -836,7 +822,6 @@ def start_delivery(request, pk):
     
     return redirect('requisition:delivery_list')
 
-@login_required
 def confirm_delivery(request, pk):
     delivery = get_object_or_404(Delivery, pk=pk)
     user_role = request.user.customuser.role if hasattr(request.user, 'customuser') else None
@@ -926,7 +911,6 @@ def confirm_delivery(request, pk):
     
     return redirect('requisition:delivery_list')
 
-@login_required
 def get_delivery_details(request, pk):
     try:
         delivery = get_object_or_404(Delivery.objects.select_related(
@@ -988,7 +972,6 @@ def get_delivery_details(request, pk):
         print(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
 def view_delivery_pdf(request, pk):
     try:
         delivery = get_object_or_404(Delivery.objects.select_related(
@@ -1096,7 +1079,6 @@ def view_delivery_pdf(request, pk):
         messages.error(request, "Failed to generate PDF. Please try again.")
         return redirect('requisition:delivery_list')
 
-@login_required
 def get_warehouse_items(request, warehouse_id):
     """API endpoint to get items for a specific warehouse with stock > 0"""
     try:
@@ -1113,7 +1095,6 @@ def get_warehouse_items(request, warehouse_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-@login_required
 def search_items(request):
     """API endpoint to search for items"""
     query = request.GET.get('q', '').strip()
@@ -1152,17 +1133,11 @@ def search_items(request):
 
     return JsonResponse(results, safe=False)
 
-@login_required
 def view_requisition_pdf(request, pk):
     try:
         # Get the requisition object
         requisition = get_object_or_404(Requisition, pk=pk)
         
-        # Check if user has permission to view (managers or the requester)
-        if not (request.user.customuser.role in ['manager', 'admin'] or request.user == requisition.requester):
-            messages.error(request, "You don't have permission to view this requisition.")
-            return redirect('requisition:requisition_list')
-
         # Create the directory if it doesn't exist
         pdf_dir = os.path.join(settings.MEDIA_ROOT, 'requisition_pdfs')
         os.makedirs(pdf_dir, exist_ok=True)
@@ -1376,13 +1351,8 @@ def view_requisition_pdf(request, pk):
             except:
                 pass
 
-@login_required
 def get_requisition_details(request, pk):
     requisition = get_object_or_404(Requisition, pk=pk)
-    
-    # Check if user has permission to view
-    if not (request.user.customuser.role in ['manager', 'admin'] or request.user == requisition.requester):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
     
     # Prepare items data
     items_data = []

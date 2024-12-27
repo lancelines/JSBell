@@ -12,7 +12,6 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('accounts/', views.list_accounts, name='list_accounts'),
-    path('accounts/<int:user_id>/permissions/', views.manage_permissions, name='manage_permissions'),
     path('accounts/<int:user_id>/delete/', views.delete_account, name='delete_account'),
     
     # Password Reset URLs
