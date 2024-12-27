@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
 
 from .models import InventoryItem, Brand, Category, Warehouse, GlobalSettings
-from .forms import InventoryItemForm, BrandForm, CategoryForm, WarehouseForm, GlobalSettingsForm
+from .forms import InventoryItemForm, BrandForm, CategoryForm, GlobalSettingsForm
 
 def inventory_list(request):
     # Get user role
@@ -137,10 +137,8 @@ def create_brand(request):
         form = BrandForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Brand created successfully.')
+            messages.success(request, 'Brand created successfully!')
             return redirect('inventory:list')
-        else:
-            messages.error(request, 'Error creating brand. Please check the form.')
     else:
         form = BrandForm()
     return render(request, 'inventory/brand_form.html', {'form': form})
@@ -150,26 +148,11 @@ def create_category(request):
         form = CategoryForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Category created successfully.')
+            messages.success(request, 'Category created successfully!')
             return redirect('inventory:list')
-        else:
-            messages.error(request, 'Error creating category. Please check the form.')
     else:
         form = CategoryForm()
     return render(request, 'inventory/category_form.html', {'form': form})
-
-def create_warehouse(request):
-    if request.method == 'POST':
-        form = WarehouseForm(request.POST)
-        if form.is_valid():
-            warehouse = form.save()
-            messages.success(request, 'Warehouse created successfully.')
-            return redirect('inventory:list')
-        else:
-            messages.error(request, 'Error creating warehouse. Please check the form.')
-    else:
-        form = WarehouseForm()
-    return render(request, 'inventory/warehouse_form.html', {'form': form})
 
 def set_price(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)

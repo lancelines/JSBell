@@ -13,6 +13,5 @@ urlpatterns = [
     path('<int:pk>/delete/', views.inventory_delete, name='delete'),
     path('brand/create/', views.create_brand, name='create_brand'),
     path('category/create/', views.create_category, name='create_category'),
-    path('warehouse/create/', views.create_warehouse, name='create_warehouse'),
     path('<int:pk>/set-price/', views.set_price, name='set_price'),
 ]
