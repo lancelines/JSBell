@@ -516,18 +516,26 @@ def delivery_list(request) -> Any:
         'purchase_order__requisitions'
     )
     
-    # Filter by user's warehouse
+    # Filter deliveries based on user role
     if hasattr(request.user, 'customuser'):
-        if request.user.is_superuser or request.user.customuser.role == 'admin':
-            deliveries = all_deliveries.order_by('-created_at')
-        else:
-            user_warehouses = request.user.warehouses.all()
+        user_role = request.user.customuser.role
+        if user_role == 'admin':
+            # Admin sees all deliveries
+            deliveries = all_deliveries
+        elif user_role in ['manager', 'attendant']:
+            # Managers and attendants see deliveries to their warehouses
+            user_warehouses = request.user.customuser.warehouses.all()
             deliveries = all_deliveries.filter(
-                Q(warehouse__in=user_warehouses) |
-                Q(warehouse__isnull=True, purchase_order__warehouse__in=user_warehouses)
-            ).order_by('-created_at')
+                Q(warehouse__in=user_warehouses) |  # Deliveries to their warehouse
+                Q(purchase_order__warehouse__in=user_warehouses)  # PO deliveries to their warehouse
+            )
+        else:
+            deliveries = Delivery.objects.none()
     else:
-        deliveries = all_deliveries.order_by('-created_at')
+        deliveries = Delivery.objects.none()
+    
+    # Order deliveries
+    deliveries = deliveries.order_by('-created_at')
     
     # Filter by status if provided
     status_filter = request.GET.get('status')
@@ -553,18 +561,41 @@ def delivery_list(request) -> Any:
 
 @login_required
 def view_delivery(request, pk: int) -> Any:
-    delivery = get_object_or_404(Delivery, pk=pk)
-    
-    # Check user permissions
-    if not hasattr(request.user, 'customuser'):
+    delivery = get_object_or_404(Delivery.objects.select_related(
+        'purchase_order',
+        'purchase_order__supplier',
+        'warehouse',
+        'received_by'
+    ).prefetch_related(
+        'items',
+        'items__purchase_order_item',
+        'items__purchase_order_item__item'
+    ), pk=pk)
+
+    # Check if user has permission to view this delivery
+    if hasattr(request.user, 'customuser'):
+        user_role = request.user.customuser.role
+        user_warehouses = request.user.customuser.warehouses.all()
+        
+        if user_role == 'admin':
+            # Admin can view all deliveries
+            pass
+        elif user_role in ['manager', 'attendant']:
+            # Check if delivery is to user's warehouse
+            if not (delivery.warehouse in user_warehouses or 
+                   (delivery.purchase_order and delivery.purchase_order.warehouse in user_warehouses)):
+                messages.error(request, "You don't have permission to view this delivery.")
+                return redirect('purchasing:delivery_list')
+        else:
+            messages.error(request, "You don't have permission to view deliveries.")
+            return redirect('purchasing:delivery_list')
+    else:
         messages.error(request, "You don't have permission to view deliveries.")
         return redirect('purchasing:delivery_list')
     
-    user_role = request.user.customuser.role
-    
     # Handle receipt upload by manager
     if request.method == 'POST' and delivery.status == 'in_delivery':
-        if user_role != 'manager':
+        if request.user.customuser.role != 'manager':
             messages.error(request, "Only managers can upload delivery receipts.")
             return redirect('purchasing:delivery_list')
             

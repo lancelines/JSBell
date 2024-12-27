@@ -43,15 +43,15 @@ class RequisitionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if self.user and hasattr(self.user, 'customuser'):
-            user_warehouse = self.user.warehouses.first()
+            user_warehouse = self.user.customuser.warehouses.first()
             
             # For attendants, show warehouses they can request from
             if self.user.customuser.role == 'attendance':
                 # Get all warehouses that have managers assigned, regardless of stock
                 manager_warehouses = Warehouse.objects.filter(
-                    users__customuser__role='manager'  # Get warehouses with managers
+                    custom_users__role='manager'  # Get warehouses with managers
                 ).exclude(
-                    id=user_warehouse.id  # Exclude attendant's own warehouse
+                    id=user_warehouse.id if user_warehouse else None  # Exclude attendant's own warehouse
                 ).distinct()
                 
                 if not manager_warehouses.exists():
@@ -72,7 +72,7 @@ class RequisitionForm(forms.ModelForm):
                 # Always show items from attendant's warehouse
                 base_queryset = InventoryItem.objects.filter(
                     warehouse=user_warehouse
-                ).select_related('brand')
+                ).select_related('brand') if user_warehouse else InventoryItem.objects.none()
                 
                 # Apply stock level annotation
                 base_queryset = base_queryset.annotate(
@@ -126,7 +126,7 @@ class RequisitionForm(forms.ModelForm):
             
         # Skip stock validation if attendant is requesting from their own warehouse
         if self.user and hasattr(self.user, 'customuser') and self.user.customuser.role == 'attendance':
-            user_warehouse = self.user.warehouses.first()
+            user_warehouse = self.user.customuser.warehouses.first()
             if user_warehouse:
                 # No need to validate stock for items from attendant's own warehouse
                 return cleaned_data

@@ -17,10 +17,10 @@ class InventoryItemForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            if user.is_superuser:
+            if user.is_superuser or (hasattr(user, 'customuser') and user.customuser.role == 'admin'):
                 self.fields['warehouse'].queryset = Warehouse.objects.all()
-            else:
-                self.fields['warehouse'].queryset = user.warehouses.all()
+            elif hasattr(user, 'customuser'):
+                self.fields['warehouse'].queryset = user.customuser.warehouses.all()
                 if self.fields['warehouse'].queryset.count() == 1:
                     self.fields['warehouse'].initial = self.fields['warehouse'].queryset.first()
                     self.fields['warehouse'].widget = forms.HiddenInput()

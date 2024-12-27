@@ -50,6 +50,13 @@ class CustomUser(models.Model):
         # Add permissions based on role
         if self.role in ['manager', 'admin']:
             self.add_requisition_permission()
+            # Add the can_approve_requisition permission
+            content_type = ContentType.objects.get_for_model(Requisition)
+            permission = Permission.objects.get(
+                codename='can_approve_requisition',
+                content_type=content_type,
+            )
+            self.user.user_permissions.add(permission)
 
         if self.role == 'admin':
             self.add_admin_permissions()

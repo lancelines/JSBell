@@ -157,24 +157,14 @@
                                 </svg>
                             </button>
                             <div class="dropdown-content pl-8 mt-2 space-y-3">
-                                <!-- Requisition Deliveries -->
-                                {% if user.is_superuser %}
-                                <a href="{% url 'purchasing:delivery_list' %}" class="flex items-center py-2 text-gray-300 hover:text-indigo-400 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4 mr-2 text-gray-300 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                    </svg>
-                                    <span class="flex-1">External Deliveries</span>
-                                    <span class="px-2 py-1 text-xs bg-indigo-500/10 text-indigo-400 rounded">Purchases</span>
+                                <!-- Internal Deliveries -->
+                                <a href="{% url 'requisition:delivery_list' %}" class="flex items-center py-2 text-gray-300 hover:text-indigo-400 transition-colors duration-200">
+                                    <span>Internal Deliveries</span>
                                 </a>
-                                {% else %}
-                                <a href="{% url 'requisition:delivery_list' %}" class="flex items-center py-2 text-gray-300 hover:text-indigo-400 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4 mr-2 text-gray-300 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                    </svg>
-                                    <span class="flex-1">Internal Deliveries</span>
-                                    <span class="px-2 py-1 text-xs bg-indigo-500/10 text-indigo-400 rounded">Requisitions</span>
+                                <!-- External Deliveries -->
+                                <a href="{% url 'purchasing:delivery_list' %}" class="flex items-center py-2 text-gray-300 hover:text-indigo-400 transition-colors duration-200">
+                                    <span>External Deliveries</span>
                                 </a>
-                                {% endif %}
                             </div>
                         </div>
                     </div>

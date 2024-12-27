@@ -5,6 +5,7 @@ from django.db.models import Q, Case, When, IntegerField, F
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db import transaction
+from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 from io import BytesIO
 from .models import Requisition, Notification, RequisitionItem, Delivery, DeliveryItem, RequisitionStatusHistory
@@ -93,7 +94,7 @@ def requisition_list(request):
         requisitions = Requisition.objects.filter(requester=user)
     elif user_role == 'manager':
         # Get the warehouses assigned to the manager
-        manager_warehouses = user.warehouses.all()
+        manager_warehouses = user.customuser.warehouses.all()
         # Get all requisitions related to manager's warehouses
         requisitions = Requisition.objects.filter(
             Q(source_warehouse__in=manager_warehouses) | 
@@ -144,7 +145,7 @@ def create_requisition(request):
     print("\nDEBUG: Starting create_requisition")
     print(f"DEBUG: User: {request.user.username}")
     print(f"DEBUG: User role: {request.user.customuser.role if hasattr(request.user, 'customuser') else None}")
-    user_warehouse = request.user.warehouses.first()
+    user_warehouse = request.user.customuser.warehouses.first() if hasattr(request.user, 'customuser') else None
     print(f"DEBUG: User warehouse: {user_warehouse.name if user_warehouse else None}")
     
     if request.method == 'POST':
@@ -159,11 +160,11 @@ def create_requisition(request):
                     if request.user.customuser.role == 'attendance':
                         requisition.status = 'pending'  # Pending manager approval
                         requisition.source_warehouse = form.cleaned_data.get('source_warehouse')
-                        requisition.destination_warehouse = request.user.warehouses.first()
+                        requisition.destination_warehouse = request.user.customuser.warehouses.first()
                     else:
                         # For managers, set status to pending admin approval
                         requisition.status = 'pending_admin_approval'
-                        requisition.source_warehouse = request.user.warehouses.first()
+                        requisition.source_warehouse = request.user.customuser.warehouses.first()
                     
                     requisition.save()
 
@@ -203,7 +204,7 @@ def create_requisition(request):
         form = RequisitionForm(user=request.user)
     
     # Get items for the template context
-    user_warehouse = request.user.warehouses.first()
+    user_warehouse = request.user.customuser.warehouses.first() if hasattr(request.user, 'customuser') else None
     items = []
     categories = []
     brands = []
@@ -272,6 +273,14 @@ def approve_requisition(request, pk):
         messages.error(request, "You don't have permission to approve requisitions.")
         return redirect('requisition:requisition_list')
 
+    # Set source warehouse to manager's warehouse if they are approving
+    if user_role == 'manager':
+        manager_warehouse = request.user.customuser.warehouses.first()
+        if manager_warehouse:
+            requisition.source_warehouse = manager_warehouse
+            requisition.save()
+            print(f"DEBUG: Set source warehouse to {manager_warehouse.name} for requisition {requisition.id}")
+    
     # Get availability information for each item
     items_with_availability = []
     for req_item in requisition.items.all():
@@ -585,8 +594,11 @@ def delivery_list(request):
     print(f"DEBUG: User role: {user_role}")
     
     if user_role == 'manager':
-        managed_warehouses = request.user.warehouses.all()
+        managed_warehouses = request.user.customuser.warehouses.all()
         deliveries = Delivery.objects.filter(
+            Q(requisition__source_warehouse__in=managed_warehouses) |  # Deliveries from manager's warehouse
+            Q(requisition__destination_warehouse__in=managed_warehouses)  # Deliveries to manager's warehouse
+        ).filter(
             Q(status='pending_manager') |
             Q(status='pending_delivery') |
             Q(status='in_delivery') |
@@ -688,7 +700,7 @@ def manage_delivery(request, pk):
 
     # Get items from the source warehouse (manager's warehouse)
     source_warehouse = requisition.source_warehouse
-    if source_warehouse not in request.user.warehouses.all():
+    if source_warehouse not in request.user.customuser.warehouses.all():
         messages.error(request, "You don't have access to the source warehouse.")
         return redirect('requisition:delivery_list')
 
@@ -1001,83 +1013,234 @@ def view_delivery_pdf(request, pk):
 
         # Styles
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(
-            name='CustomTitle',
+        
+        # Custom styles
+        header_style = ParagraphStyle(
+            'CustomHeader',
             parent=styles['Heading1'],
             fontSize=16,
+            textColor=colors.HexColor('#1a56db'),
             spaceAfter=30,
             alignment=TA_CENTER
+        )
+        
+        subheader_style = ParagraphStyle(
+            'SubHeader',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#4a5568'),
+            spaceBefore=20,
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        
+        detail_label_style = ParagraphStyle(
+            'DetailLabel',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#4a5568'),
+            fontName='Helvetica-Bold'
+        )
+        
+        detail_value_style = ParagraphStyle(
+            'DetailValue',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#1a202c'),
+            leftIndent=20
+        )
+        
+        story = []
+        
+        # Add company header
+        story.append(Paragraph("COMPANY NAME", header_style))
+        story.append(Paragraph("Requisition Form", subheader_style))
+        story.append(Spacer(1, 20))
+        
+        # Add horizontal line
+        story.append(HRFlowable(
+            width="100%",
+            thickness=1,
+            color=colors.HexColor('#e2e8f0'),
+            spaceBefore=10,
+            spaceAfter=20
         ))
         
-        # Title
-        elements.append(Paragraph(f"DELIVERY NOTE #{delivery.id}", styles['CustomTitle']))
-        elements.append(Spacer(1, 12))
-
-        # Delivery Info Table
+        # Create two-column layout for requisition details
         data = [
-            ['Delivery ID:', f'DEL-{delivery.id:04d}'],
-            ['Status:', delivery.get_status_display()],
-            ['Source Warehouse:', delivery.requisition.source_warehouse.name],
-            ['Destination Warehouse:', delivery.requisition.destination_warehouse.name],
-            ['Created Date:', delivery.created_at.strftime('%B %d, %Y %H:%M') if delivery.created_at else 'Not specified'],
-            ['Estimated Delivery:', delivery.estimated_delivery_date.strftime('%B %d, %Y') if delivery.estimated_delivery_date else 'Not specified'],
-            ['Delivery Personnel:', delivery.delivery_personnel_name or 'Not assigned'],
-            ['Contact Number:', delivery.delivery_personnel_phone or 'N/A'],
-            ['Requested By:', delivery.requisition.requester.get_full_name() or delivery.requisition.requester.username],
+            [Paragraph("<b>Requisition ID:</b>", detail_label_style),
+             Paragraph(f"#{requisition.id}", detail_value_style),
+             Paragraph("<b>Status:</b>", detail_label_style),
+             Paragraph(requisition.get_status_display(), detail_value_style)],
+            [Paragraph("<b>Requestor:</b>", detail_label_style),
+             Paragraph(requisition.requester.get_full_name() or requisition.requester.username, detail_value_style),
+             Paragraph("<b>Request Date:</b>", detail_label_style),
+             Paragraph(requisition.created_at.strftime('%Y-%m-%d %H:%M') if requisition.created_at else None, detail_value_style)],
+            [Paragraph("<b>Request Type:</b>", detail_label_style),
+             Paragraph(requisition.get_request_type_display(), detail_value_style),
+             Paragraph("<b>Created By:</b>", detail_label_style),
+             Paragraph(requisition.requester.username, detail_value_style)]
         ]
-
-        info_table = Table(data, colWidths=[2*inch, 4*inch])
-        info_table.setStyle(TableStyle([
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
-            ('BACKGROUND', (0,0), (0,-1), colors.lightgrey),
-            ('TEXTCOLOR', (0,0), (0,-1), colors.black),
-            ('PADDING', (0,0), (-1,-1), 6),
-        ]))
-        elements.append(info_table)
-        elements.append(Spacer(1, 20))
-
-        # Items Table
-        elements.append(Paragraph("Items List", styles['Heading2']))
-        elements.append(Spacer(1, 12))
-
-        # Items table header
-        items_data = [['Item Name', 'Brand', 'Category', 'Quantity']]
         
-        # Add items to table
-        for item in delivery.items.all():
-            items_data.append([
-                item.item.item_name,
-                item.item.brand.name if item.item.brand else 'N/A',
-                item.item.category.name if item.item.category else 'N/A',
-                str(item.quantity)
+        if requisition.source_warehouse:
+            data.append([
+                Paragraph("<b>Source Warehouse:</b>", detail_label_style),
+                Paragraph(requisition.source_warehouse.name, detail_value_style),
+                Paragraph("<b>Destination Warehouse:</b>", detail_label_style),
+                Paragraph(requisition.destination_warehouse.name if requisition.destination_warehouse else "-", detail_value_style)
             ])
-
-        # Create and style items table
-        items_table = Table(items_data, colWidths=[3*inch, 1.5*inch, 1.5*inch, 1*inch])
-        items_table.setStyle(TableStyle([
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
-            ('BACKGROUND', (0,0), (3,0), colors.lightgrey),
-            ('TEXTCOLOR', (0,0), (-1,-1), colors.black),
-            ('PADDING', (0,0), (-1,-1), 6),
+        
+        # Create the details table
+        details_table = Table(data, colWidths=[1.5*inch, 2*inch, 1.5*inch, 2*inch])
+        details_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#e2e8f0')),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#ffffff')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1a202c')),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
         ]))
-        elements.append(items_table)
-
+        story.append(details_table)
+        story.append(Spacer(1, 20))
+        
+        # Add reason section
+        story.append(Paragraph("Reason for Request", styles['Heading3']))
+        story.append(Paragraph(requisition.reason, detail_value_style))
+        story.append(Spacer(1, 20))
+        
+        # Create items table
+        story.append(Paragraph("Requested Items", styles['Heading3']))
+        story.append(Spacer(1, 15))
+        if requisition.items.exists():
+            # Only show delivered quantity if delivery has started
+            has_delivery = Delivery.objects.filter(requisition=requisition).exists() and requisition.status in ['in_delivery', 'received']
+            headers = ['Item Name', 'Brand', 'Model', 'Quantity']
+            if has_delivery:
+                headers.insert(3, 'Delivered Quantity')
+            
+            items_data = [headers]
+            
+            for req_item in requisition.items.all():
+                row = [
+                    req_item.item.item_name,
+                    req_item.item.brand.name if req_item.item.brand else 'N/A',
+                    req_item.item.model if hasattr(req_item.item, 'model') else 'N/A',
+                    str(req_item.quantity)
+                ]
+                if has_delivery:
+                    row.insert(3, str(req_item.delivered_quantity or 0))
+                items_data.append(row)
+                
+            # Calculate column widths based on content type
+            if has_delivery:
+                col_widths = [3.5*inch, 1.5*inch, 1.5*inch, 1.2*inch, 1.2*inch]  # Adjusted for 5 columns
+            else:
+                col_widths = [4*inch, 1.8*inch, 1.8*inch, 1.4*inch]  # Adjusted for 4 columns
+            
+            # Create and style the table with the new column widths
+            table = Table(items_data, colWidths=col_widths)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a56db')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#ffffff')),
+                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1a202c')),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#e2e8f0')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(table)
+            story.append(Spacer(1, 15))
+        
+        # Add manager comment if exists
+        if requisition.manager_comment:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Manager's Comment", styles['Heading3']))
+            story.append(Paragraph(requisition.manager_comment, detail_value_style))
+        
+        # Add footer
+        story.append(Spacer(1, 40))
+        footer_text = f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M')} | Requisition #{requisition.id}"
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.HexColor('#718096'),
+            alignment=TA_CENTER
+        )
+        story.append(Paragraph(footer_text, footer_style))
+        
         # Build PDF
-        doc.build(elements)
-        return response
-
+        doc.build(story)
+        
+        # Return PDF response
+        if os.path.exists(filepath):
+            with open(filepath, 'rb') as pdf_file:
+                response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+                response['Content-Disposition'] = 'inline; filename="{}"'.format(filename)
+                return response
+            
     except Exception as e:
-        import traceback
-        print(f"Error generating PDF for delivery {pk}: {str(e)}")
-        print(traceback.format_exc())
-        messages.error(request, "Failed to generate PDF. Please try again.")
-        return redirect('requisition:delivery_list')
+        messages.error(request, f"Error generating PDF: {str(e)}")
+        return redirect('requisition:requisition_list')
+    finally:
+        # Clean up the temporary PDF file
+        if 'filepath' in locals() and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except:
+                pass
+
+def get_requisition_details(request, pk):
+    requisition = get_object_or_404(Requisition, pk=pk)
+    
+    # Prepare items data
+    items_data = []
+    for item in requisition.items.all():
+        image_url = None
+        if item.item.image:
+            try:
+                image_url = request.build_absolute_uri(item.item.image.url)
+            except Exception as e:
+                print(f"Error getting image URL: {e}")
+        
+        items_data.append({
+            'name': item.item.item_name,
+            'brand': item.item.brand.name if item.item.brand else 'N/A',
+            'quantity': item.quantity,
+            'delivered_quantity': item.delivered_quantity if item.delivered_quantity else None,
+            'image_url': image_url
+        })
+    
+    data = {
+        'id': requisition.id,
+        'status': requisition.get_status_display(),
+        'created_at': requisition.created_at.strftime('%Y-%m-%d %H:%M') if requisition.created_at else None,
+        'requester': requisition.requester.get_full_name() or requisition.requester.username,
+        'items': items_data,
+        'reason': requisition.reason,
+        'manager_comment': requisition.manager_comment,
+        'request_type': requisition.get_request_type_display(),
+        'source_warehouse': requisition.source_warehouse.name if requisition.source_warehouse else None,
+        'destination_warehouse': requisition.destination_warehouse.name if requisition.destination_warehouse else None,
+    }
+    
+    return JsonResponse(data)
 
 def get_warehouse_items(request, warehouse_id):
     """API endpoint to get items for a specific warehouse with stock > 0"""
@@ -1103,7 +1266,7 @@ def search_items(request):
 
     logger.info('Search items called with parameters: %s', request.GET)
     # Get the user's warehouses
-    user_warehouses = request.user.warehouses.all()
+    user_warehouses = request.user.customuser.warehouses.all()
     if not user_warehouses.exists():
         return JsonResponse({'error': 'No warehouse assigned'}, status=400)
 
@@ -1350,39 +1513,3 @@ def view_requisition_pdf(request, pk):
                 os.remove(filepath)
             except:
                 pass
-
-def get_requisition_details(request, pk):
-    requisition = get_object_or_404(Requisition, pk=pk)
-    
-    # Prepare items data
-    items_data = []
-    for item in requisition.items.all():
-        image_url = None
-        if item.item.image:
-            try:
-                image_url = request.build_absolute_uri(item.item.image.url)
-            except Exception as e:
-                print(f"Error getting image URL: {e}")
-        
-        items_data.append({
-            'name': item.item.item_name,
-            'brand': item.item.brand.name if item.item.brand else 'N/A',
-            'quantity': item.quantity,
-            'delivered_quantity': item.delivered_quantity if item.delivered_quantity else None,
-            'image_url': image_url
-        })
-    
-    data = {
-        'id': requisition.id,
-        'status': requisition.get_status_display(),
-        'created_at': requisition.created_at.strftime('%Y-%m-%d %H:%M') if requisition.created_at else None,
-        'requester': requisition.requester.get_full_name() or requisition.requester.username,
-        'items': items_data,
-        'reason': requisition.reason,
-        'manager_comment': requisition.manager_comment,
-        'request_type': requisition.get_request_type_display(),
-        'source_warehouse': requisition.source_warehouse.name if requisition.source_warehouse else None,
-        'destination_warehouse': requisition.destination_warehouse.name if requisition.destination_warehouse else None,
-    }
-    
-    return JsonResponse(data)

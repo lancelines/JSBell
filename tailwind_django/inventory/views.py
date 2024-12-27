@@ -15,7 +15,7 @@ def inventory_list(request):
         items = InventoryItem.objects.all().select_related('warehouse', 'brand', 'category')
     # For attendants and managers, show their assigned warehouses
     else:
-        warehouses = request.user.warehouses.all()
+        warehouses = request.user.customuser.warehouses.all()
         items = InventoryItem.objects.filter(warehouse__in=warehouses).select_related('warehouse', 'brand', 'category')
     
     # Search functionality
@@ -91,7 +91,7 @@ def inventory_detail(request, pk):
 
 def inventory_create(request):
     if request.method == 'POST':
-        form = InventoryItemForm(request.POST, request.FILES)
+        form = InventoryItemForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             item = form.save(commit=False)
             item.save()
@@ -100,8 +100,7 @@ def inventory_create(request):
         else:
             messages.error(request, 'Error creating item. Please check the form.')
     else:
-        form = InventoryItemForm()
-        form.fields['warehouse'].queryset = Warehouse.objects.all()
+        form = InventoryItemForm(user=request.user)
     
     return render(request, 'inventory/inventory_form.html', {'form': form, 'action': 'Create'})
 
@@ -109,7 +108,7 @@ def inventory_update(request, pk):
     item = get_object_or_404(InventoryItem, pk=pk)
     
     if request.method == 'POST':
-        form = InventoryItemForm(request.POST, request.FILES, instance=item)
+        form = InventoryItemForm(request.POST, request.FILES, instance=item, user=request.user)
         if form.is_valid():
             updated_item = form.save(commit=False)
             updated_item.save()
@@ -118,8 +117,7 @@ def inventory_update(request, pk):
         else:
             messages.error(request, 'Error updating item. Please check the form.')
     else:
-        form = InventoryItemForm(instance=item)
-        form.fields['warehouse'].queryset = Warehouse.objects.all()
+        form = InventoryItemForm(instance=item, user=request.user)
     
     return render(request, 'inventory/inventory_form.html', {'form': form, 'action': 'Update'})
 

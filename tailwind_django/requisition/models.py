@@ -54,6 +54,11 @@ class Requisition(models.Model):
     delivery_comment = models.TextField(null=True, blank=True)
     tracker = FieldTracker()
 
+    class Meta:
+        permissions = [
+            ("can_approve_requisition", "Can approve requisition"),
+        ]
+
     def start_delivery(self, estimated_date, comment=None, delivered_qty=None):
         if self.status in ['approved', 'pending_delivery']:
             self.status = 'in_delivery'

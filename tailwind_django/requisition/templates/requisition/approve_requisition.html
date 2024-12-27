@@ -26,9 +26,9 @@
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Requester</dt>
                     <dd class="mt-1 text-sm text-gray-900">
-                        {{ requisition.requester.get_full_name }}
-                        {% if requisition.requester.customuser.attendance_user %}
-                            <span class="text-gray-500">({{ requisition.requester.customuser.attendance_user.role }})</span>
+                        {{ requisition.requester.username }}
+                        {% if requisition.requester.customuser %}
+                            <span class="text-gray-500">({{ requisition.requester.customuser.role }})</span>
                         {% endif %}
                     </dd>
                 </div>
