@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
 from .forms import UserRegistrationForm, UserLoginForm
 from requisition.models import Requisition
 from sales.models import Sale, ReturnItem, SaleItem
@@ -46,43 +47,39 @@ def logout_view(request):
     logout(request)
     return redirect('account:login')
 
+@login_required(login_url='account:login')
 def home(request):
     user = request.user
-    requisitions = []
-    
-    # Get current month's start and end dates
-    today = timezone.now()
-    month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    if today.month == 12:
-        month_end = today.replace(year=today.year + 1, month=1, day=1, hour=23, minute=59, second=59, microsecond=999999) - timedelta(days=1)
-    else:
-        month_end = today.replace(month=today.month + 1, day=1, hour=23, minute=59, second=59, microsecond=999999) - timedelta(days=1)
+    custom_user = CustomUser.objects.get(user=user)
 
-    # Get sales statistics
-    monthly_sales = Sale.objects.filter(sale_date__range=(month_start, month_end))
-    total_sales = monthly_sales.aggregate(
+    # Get monthly sales data
+    total_sales = Sale.objects.filter(
+        sale_date__month=timezone.now().month,
+        sale_date__year=timezone.now().year
+    ).aggregate(
         total_amount=Sum('total_price'),
         total_count=Count('id')
     )
 
-    # Get returned items statistics for this month's sales
-    monthly_returns = ReturnItem.objects.filter(
-        return_date__range=(month_start, month_end)
-    )
-    total_returns = monthly_returns.aggregate(
-        total_count=Count('id'),
-        total_amount=Sum('sale_item__price_per_unit')
+    # Get monthly returns data
+    total_returns = ReturnItem.objects.filter(
+        return_date__month=timezone.now().month,
+        return_date__year=timezone.now().year
+    ).aggregate(
+        total_amount=Sum('sale_item__price_per_unit'),
+        total_count=Count('id')
     )
 
-    # Get top selling items
-    top_selling_items = SaleItem.objects.filter(
-        sale__sale_date__range=(month_start, month_end)
-    ).values('item__item_name').annotate(
+    # Get top selling products
+    top_selling_products = SaleItem.objects.values(
+        'item__item_name'
+    ).annotate(
         total_quantity=Sum('quantity'),
         total_revenue=Sum('quantity') * Sum('price_per_unit')
     ).order_by('-total_quantity')[:5]
 
-    if user.is_superuser:
+    # Get requisitions based on user role
+    if custom_user.role == 'admin':
         requisitions = Requisition.objects.all().order_by('-created_at')[:5]
     else:
         requisitions = Requisition.objects.filter(
@@ -99,9 +96,9 @@ def home(request):
             'total_count': total_returns['total_count'] or 0,
             'total_amount': total_returns['total_amount'] or 0,
         },
-        'top_selling_items': top_selling_items,
-        'current_month': today.strftime('%B %Y'),
+        'top_selling_products': top_selling_products,
     }
+    
     return render(request, 'account/home.html', context)
 
 def add_account(request):

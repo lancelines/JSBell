@@ -9,7 +9,7 @@
                 Welcome, {{ request.user.username }}!
             </p>
             <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-                Sales Overview for {{ current_month }}
+                Monthly Sales Overview
             </p>
         </div>
 
@@ -82,28 +82,28 @@
 
         <div class="mt-10">
             <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-                <!-- Top Selling Items -->
+                <!-- Top Selling Products -->
                 <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
                     <div class="px-4 py-5 sm:p-6">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Top Selling Items</h3>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Top Selling Products</h3>
                         <div class="mt-5">
-                            {% if top_selling_items %}
+                            {% if top_selling_products %}
                                 <div class="flow-root">
                                     <ul role="list" class="-my-5 divide-y divide-gray-200">
-                                        {% for item in top_selling_items %}
+                                        {% for product in top_selling_products %}
                                             <li class="py-4">
                                                 <div class="flex items-center space-x-4">
                                                     <div class="flex-1 min-w-0">
                                                         <p class="text-sm font-medium text-gray-900 truncate">
-                                                            {{ item.item__item_name }}
+                                                            {{ product.product__name }}
                                                         </p>
                                                         <p class="text-sm text-gray-500">
-                                                            Quantity Sold: {{ item.total_quantity }}
+                                                            Quantity Sold: {{ product.total_quantity }}
                                                         </p>
                                                     </div>
                                                     <div>
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            ${{ item.total_revenue|floatformat:2 }}
+                                                            ${{ product.total_revenue|floatformat:2 }}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -154,35 +154,6 @@
                             {% else %}
                                 <p class="text-gray-500">No recent requisitions</p>
                             {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
-                    <div class="px-4 py-5 sm:p-6">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Actions</h3>
-                        <div class="mt-5">
-                            <div class="space-y-4">
-                                <a href="{% url 'requisition:create_requisition' %}" 
-                                   class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                                    Create New Requisition
-                                </a>
-                                <a href="{% url 'requisition:requisition_list' %}" 
-                                   class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                    View All Requisitions
-                                </a>
-                                {% if request.user.is_superuser %}
-                                    <a href="{% url 'account:add_account' %}" 
-                                       class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                        Add New User
-                                    </a>
-                                    <a href="{% url 'account:list_accounts' %}" 
-                                       class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                        Manage Users
-                                    </a>
-                                {% endif %}
-                            </div>
                         </div>
                     </div>
                 </div>
