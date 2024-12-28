@@ -4,19 +4,22 @@
 <div class="py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="lg:text-center">
-            <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Dashboard</h2>
+            <!-- Logo with modern gradient -->
+            <div class="flex items-center justify-center h-20 bg-gray-900/80 backdrop-blur-sm">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 text-4xl font-bold tracking-wider animate-pulse">JSV</span>
+            </div>
             <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
                 Welcome, {{ request.user.username }}!
             </p>
-            <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+            <!-- <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
                 Monthly Sales Overview
-            </p>
+            </p> -->
         </div>
 
         <!-- Sales Statistics Cards -->
-        <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"> -->
             <!-- Monthly Sales Card -->
-            <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
+            <!-- <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
@@ -34,10 +37,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Total Orders Card -->
-            <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
+            <!-- <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -55,10 +58,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Returns Card -->
-            <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
+            <!-- <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
@@ -78,12 +81,12 @@
                     </div>
                 </div>
             </div>
-        </div>
-
+        </div> -->
+<!-- 
         <div class="mt-10">
-            <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
+            <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10"> -->
                 <!-- Top Selling Products -->
-                <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
+                <!-- <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
                     <div class="px-4 py-5 sm:p-6">
                         <h3 class="text-lg leading-6 font-medium text-gray-900">Top Selling Products</h3>
                         <div class="mt-5">
@@ -116,7 +119,7 @@
                             {% endif %}
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Recent Requisitions -->
                 <div class="bg-white overflow-hidden shadow-lg rounded-2xl">
