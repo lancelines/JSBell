@@ -22,6 +22,26 @@ source venv/bin/activate
 3. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
+# or(if command above doesn't work)
+pip install Django>=4.2.0
+pip install django-tailwind>=3.6.0
+pip install pillow>=10.0.0
+pip install django-crispy-forms>=2.0
+pip install crispy-tailwind>=0.5.0
+pip install python-dotenv>=1.0.0
+pip install django-browser-reload>=1.11.0
+pip install django-htmx>=1.17.0
+pip install django-filter>=23.3
+pip install django-widget-tweaks>=1.5.0
+pip install gunicorn>=21.2.0
+pip install whitenoise>=6.5.0
+pip install dj-database-url>=2.1.0
+pip install django-model-utils>=4.3.1
+pip install reportlab>=4.1.0
+
+pip install psycopg2-binary>=2.9.9
+#or (if pip install psycopg2-binary>=2.9.9 doesn't work)
+pip install psycopg[binary]>3
 ```
 
 4. Install Tailwind CSS dependencies:
@@ -63,10 +83,8 @@ python manage.py runserver
 
 - User Authentication and Authorization
 - Inventory Management
-- Sales Management
 - Purchase Management
 - Requisition System
-- Dashboard with Analytics
 - Responsive Design with Tailwind CSS
 
 ## Project Structure
@@ -75,7 +93,6 @@ python manage.py runserver
 - `inventory/`: Core inventory management functionality
 - `purchasing/`: Purchase order and supplier management
 - `requisition/`: Requisition system
-- `sales/`: Sales and customer management
 - `theme/`: Tailwind CSS configuration and styling
 
 ## Development
